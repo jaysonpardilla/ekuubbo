@@ -8,10 +8,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # -------------------------
 # SECURITY
 # -------------------------
-SECRET_KEY = config("SECRET_KEY")
-
-DEBUG = config("DEBUG", default=False, cast=bool)
-
 ALLOWED_HOSTS = ["*"]
 
 # -------------------------
@@ -58,7 +54,7 @@ MIDDLEWARE = [
 # -------------------------
 # URLS / TEMPLATES
 # -------------------------
-ROOT_URLCONF = 'core.core.urls'
+ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [
     {
@@ -83,14 +79,6 @@ TEMPLATES = [
 ASGI_APPLICATION = 'core.asgi.application'
 WSGI_APPLICATION = 'core.wsgi.application'
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [config("REDIS_URL")],
-        },
-    },
-}
 
 # -------------------------
 # DATABASE (POSTGRESQL with fallback)
@@ -138,13 +126,36 @@ AUTH_PASSWORD_VALIDATORS = [
 # -------------------------
 # EMAIL (USE ENV VARS)
 # -------------------------
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+from decouple import config
+
+SECRET_KEY = config("SECRET_KEY", default="unsafe-local-secret-key")
+DEBUG = config("DEBUG", default=True, cast=bool)
+
+REDIS_URL = config("REDIS_URL", default=None)
+
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+
+
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
+
 
 # -------------------------
 # INTERNATIONALIZATION
